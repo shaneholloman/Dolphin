@@ -15,6 +15,7 @@ import numpy as np
 import pymupdf
 from PIL import Image
 from qwen_vl_utils import smart_resize
+
 from utils.markdown_utils import MarkdownConverter
 
 
@@ -90,13 +91,14 @@ def convert_pdf_to_images(pdf_path, target_size=896):
         return []
 
 
-def save_combined_pdf_results(all_page_results, pdf_path, save_dir):
+def save_combined_pdf_results(all_page_results, pdf_path, save_dir, post_process=False):
     """Save combined results for multi-page PDF with both JSON and Markdown
 
     Args:
         all_page_results: List of results for all pages
         pdf_path: Path to original PDF file
         save_dir: Directory to save results
+        post_process: Whether to apply post-processing to the markdown
 
     Returns:
         Path to saved combined JSON file
@@ -117,7 +119,7 @@ def save_combined_pdf_results(all_page_results, pdf_path, save_dir):
 
     # Generate and save combined markdown
     try:
-        markdown_converter = MarkdownConverter()
+        markdown_converter = MarkdownConverter(post_process)
 
         # Combine all page results into a single list for markdown conversion
         all_elements = []
@@ -229,7 +231,7 @@ def setup_output_dirs(save_dir):
     os.makedirs(os.path.join(save_dir, "layout_visualization"), exist_ok=True)
 
 
-def save_outputs(recognition_results, image, image_name, save_dir):
+def save_outputs(recognition_results, image, image_name, save_dir, post_process=False):
     """Save JSON and markdown outputs"""
 
     # Save JSON file
@@ -238,7 +240,7 @@ def save_outputs(recognition_results, image, image_name, save_dir):
         json.dump(recognition_results, f, ensure_ascii=False, indent=2)
 
     # Generate and save markdown file
-    markdown_converter = MarkdownConverter()
+    markdown_converter = MarkdownConverter(post_process)
     markdown_content = markdown_converter.convert(recognition_results)
     markdown_path = os.path.join(save_dir, "markdown", f"{image_name}.md")
     with open(markdown_path, "w", encoding="utf-8") as f:

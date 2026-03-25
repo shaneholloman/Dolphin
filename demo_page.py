@@ -124,7 +124,7 @@ class DOLPHIN:
         return results
 
 
-def process_document(document_path, model, save_dir, max_batch_size=None):
+def process_document(document_path, model, save_dir, max_batch_size=None, post_process=False):
     """Parse documents with two stages - Handles both images and PDFs"""
     file_ext = os.path.splitext(document_path)[1].lower()
     
@@ -146,7 +146,7 @@ def process_document(document_path, model, save_dir, max_batch_size=None):
             
             # Process this page (don't save individual page results)
             json_path, recognition_results = process_single_image(
-                pil_image, model, save_dir, page_name, max_batch_size, save_individual=False
+                pil_image, model, save_dir, page_name, max_batch_size, save_individual=False, post_process=post_process
             )
             
             # Add page information to results
@@ -157,7 +157,7 @@ def process_document(document_path, model, save_dir, max_batch_size=None):
             all_results.append(page_results)
         
         # Save combined results for multi-page PDF
-        combined_json_path = save_combined_pdf_results(all_results, document_path, save_dir)
+        combined_json_path = save_combined_pdf_results(all_results, document_path, save_dir, post_process=post_process)
         
         return combined_json_path, all_results
     
@@ -165,10 +165,10 @@ def process_document(document_path, model, save_dir, max_batch_size=None):
         # Process regular image file
         pil_image = Image.open(document_path).convert("RGB")
         base_name = os.path.splitext(os.path.basename(document_path))[0]
-        return process_single_image(pil_image, model, save_dir, base_name, max_batch_size)
+        return process_single_image(pil_image, model, save_dir, base_name, max_batch_size, post_process=post_process)
 
 
-def process_single_image(image, model, save_dir, image_name, max_batch_size=None, save_individual=True):
+def process_single_image(image, model, save_dir, image_name, max_batch_size=None, save_individual=True, post_process=False):
     """Process a single image (either from file or converted from PDF page)
     
     Args:
@@ -193,7 +193,7 @@ def process_single_image(image, model, save_dir, image_name, max_batch_size=None
     json_path = None
     if save_individual:
         # Create a dummy image path for save_outputs function
-        json_path = save_outputs(recognition_results, image, image_name, save_dir, post_process=False)
+        json_path = save_outputs(recognition_results, image, image_name, save_dir, post_process=post_process)
 
     return json_path, recognition_results
 
@@ -336,6 +336,7 @@ def main():
         default=4,
         help="Maximum number of document elements to parse in a single batch (default: 4)",
     )
+    parser.add_argument("--post_process", action="store_true", help="Whether to apply post-processing to the output results")
     args = parser.parse_args()
 
     # Load Model
@@ -380,6 +381,7 @@ def main():
                 model=model,
                 save_dir=save_dir,
                 max_batch_size=args.max_batch_size,
+                post_process=args.post_process
             )
 
             print(f"Processing completed. Results saved to {save_dir}")
